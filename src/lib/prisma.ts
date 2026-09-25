@@ -10,6 +10,7 @@ export const isDatabaseAvailable = Boolean(
   (rawUrl.startsWith("postgresql://") || rawUrl.startsWith("postgres://")) &&
   !rawUrl.includes("localhost") &&
   !rawUrl.includes("127.0.0.1") &&
+  !rawUrl.includes("db.dummy.invalid") &&
   !rawUrl.includes("aqua_user:aqua_pass")
 );
 
