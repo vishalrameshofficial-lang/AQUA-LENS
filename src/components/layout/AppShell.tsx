@@ -33,24 +33,26 @@ interface NavItem {
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   badge?: string;
+  adminOnly?: boolean;
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { name: "Command Center",          href: "/",                 icon: LayoutDashboard },
-  { name: "Ask Aqua-Lens",           href: "/ask",              icon: Sparkles,              badge: "AI Intel" },
-  { name: "India Vulnerability Map", href: "/map",              icon: MapIcon },
-  { name: "Village & GP Intelligence",href: "/communities",     icon: Users },
-  { name: "Complaint Center",        href: "/complaints",       icon: MessageSquareWarning,  badge: "Citizen" },
-  { name: "Data Integration Center", href: "/import",           icon: Database },
-  { name: "Risk Assessment Model",   href: "/risk-assessment",  icon: ShieldAlert },
-  { name: "IMD Climate & CWC Flood", href: "/climate-flood",    icon: CloudRain },
-  { name: "Field Verification",      href: "/field-verification",icon: ClipboardCheck },
-  { name: "Intervention Planner",    href: "/interventions",    icon: Wrench },
-  { name: "Resource Simulator",      href: "/simulator",        icon: Calculator },
-  { name: "Reports & Exports",       href: "/reports",          icon: FileText },
-  { name: "Alerts & Monitoring",     href: "/alerts",           icon: Bell },
-  { name: "Administration",          href: "/admin",            icon: Layers },
-  { name: "Settings & Policies",     href: "/settings",         icon: Sliders },
+  { name: "Command Center",          href: "/",                 icon: LayoutDashboard,       adminOnly: true },
+  { name: "Citizen Portal",          href: "/user",             icon: LayoutDashboard,       adminOnly: false },
+  { name: "Ask Aqua-Lens",           href: "/ask",              icon: Sparkles,              badge: "AI Intel", adminOnly: false },
+  { name: "India Vulnerability Map", href: "/map",              icon: MapIcon,               adminOnly: true },
+  { name: "Village & GP Intelligence",href: "/communities",     icon: Users,                 adminOnly: true },
+  { name: "Complaint Center",        href: "/complaints",       icon: MessageSquareWarning,  badge: "Citizen", adminOnly: false },
+  { name: "Data Integration Center", href: "/import",           icon: Database,              adminOnly: true },
+  { name: "Risk Assessment Model",   href: "/risk-assessment",  icon: ShieldAlert,           adminOnly: true },
+  { name: "IMD Climate & CWC Flood", href: "/climate-flood",    icon: CloudRain,             adminOnly: true },
+  { name: "Field Verification",      href: "/field-verification",icon: ClipboardCheck,        adminOnly: true },
+  { name: "Intervention Planner",    href: "/interventions",    icon: Wrench,                adminOnly: true },
+  { name: "Resource Simulator",      href: "/simulator",        icon: Calculator,            adminOnly: true },
+  { name: "Reports & Exports",       href: "/reports",          icon: FileText,              adminOnly: true },
+  { name: "Alerts & Monitoring",     href: "/alerts",           icon: Bell,                  adminOnly: true },
+  { name: "Administration",          href: "/admin",            icon: Layers,                adminOnly: true },
+  { name: "Settings & Policies",     href: "/settings",         icon: Sliders,               adminOnly: true },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -97,6 +99,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (currentUser?.role === "USER") {
+      const allowedPaths = ["/user", "/ask", "/complaints"];
+      if (!allowedPaths.some(p => pathname === p || pathname.startsWith(p + "/"))) {
+        router.replace("/user");
+      }
+    } else if (currentUser?.role === "ADMIN" && pathname === "/user") {
+      router.replace("/");
+    }
+  }, [currentUser, pathname, router]);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -149,7 +162,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         {/* Nav items */}
         <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-0.5">
-          {NAV_ITEMS.map((item) => {
+          {NAV_ITEMS.filter(item => {
+            if (currentUser?.role === "USER" && item.adminOnly) return false;
+            if (currentUser?.role === "ADMIN" && item.href === "/user") return false;
+            return true;
+          }).map((item) => {
             const Icon    = item.icon;
             const isActive = pathname === item.href;
             return (
@@ -211,25 +228,39 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 >
                   {currentUser?.name?.charAt(0) || "A"}
                 </div>
-                <div className="overflow-hidden">
+                <div className="overflow-hidden flex-1">
                   <p className="truncate text-[11px] font-semibold" style={{ color: "var(--text-heading)" }}>
                     {currentUser?.name || "Aqua-Lens User"}
                   </p>
                   <p className="truncate text-[10px]" style={{ color: "var(--text-muted)" }}>
-                    {currentUser?.email || "intelligence@aqualens.gov.in"}
+                    {currentUser?.role === "ADMIN" ? "🛡 Administrator" : "👤 Citizen"}
                   </p>
                 </div>
               </div>
+              <button
+                onClick={async () => { await fetch("/api/auth/logout", { method: "POST" }); router.push("/login"); }}
+                className="mt-2 w-full rounded-md py-1.5 text-[11px] font-semibold text-red-600 hover:bg-red-50 transition-colors"
+                style={{ border: "1px solid #fecaca" }}
+              >
+                Sign Out
+              </button>
             </div>
           ) : (
-            <div className="flex justify-center">
+            <div className="flex flex-col items-center gap-1">
               <div
                 className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-white"
                 style={{ background: "var(--blue-primary)" }}
-                title="Aqua-Lens"
+                title={currentUser?.name || "Aqua-Lens"}
               >
                 {currentUser?.name?.charAt(0) || "A"}
               </div>
+              <button
+                onClick={async () => { await fetch("/api/auth/logout", { method: "POST" }); router.push("/login"); }}
+                className="text-[9px] text-red-500 hover:underline"
+                title="Sign Out"
+              >
+                Out
+              </button>
             </div>
           )}
         </div>
@@ -243,8 +274,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           className="flex h-16 shrink-0 items-center justify-between px-5 gap-4"
           style={{ background: "var(--bg-header)", borderBottom: "1px solid var(--border-light)", boxShadow: "0 1px 4px rgba(0,0,0,.05)" }}
         >
-          {/* Global NL search */}
+          {/* Global NL search — admin only */}
           <div className="relative w-full max-w-lg">
+            {(currentUser?.role === "ADMIN" || currentUser === null) && (
             <form onSubmit={handleSearch} className="relative flex items-center">
               <Search className="absolute left-3 h-4 w-4" style={{ color: "var(--text-dim)" }} />
               <input
@@ -268,6 +300,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 {isSearching ? <RefreshCw className="h-3 w-3 animate-spin" /> : <><Sparkles className="h-3 w-3" /><span>Query</span></>}
               </button>
             </form>
+            )}
+            {currentUser?.role === "USER" && (
+              <p className="text-xs font-semibold text-slate-500 flex items-center gap-1.5">
+                <span className="text-blue-600">AQUA-LENS</span> CITIZEN PORTAL
+              </p>
+            )}
 
             {/* Search results dropdown */}
             {searchResults.length > 0 && (

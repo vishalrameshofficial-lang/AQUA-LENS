@@ -1,15 +1,36 @@
-export type UserRole = "ADMINISTRATOR" | "ANALYST" | "FIELD_OFFICER" | "VIEWER";
+export type UserRole =
+  | "ADMIN"
+  | "USER"
+  | "ADMINISTRATOR"
+  | "ANALYST"
+  | "FIELD_OFFICER"
+  | "VIEWER";
 
-export const ROLE_PERMISSIONS: Record<UserRole, {
-  canManageUsers: boolean;
-  canConfigureScoring: boolean;
-  canImportData: boolean;
-  canCreateInterventions: boolean;
-  canUpdateInterventions: boolean;
-  canSubmitFieldVerification: boolean;
-  canRunSimulations: boolean;
-  canExportReports: boolean;
-}> = {
+export const ROLE_PERMISSIONS: Record<
+  UserRole,
+  {
+    canManageUsers: boolean;
+    canConfigureScoring: boolean;
+    canImportData: boolean;
+    canCreateInterventions: boolean;
+    canUpdateInterventions: boolean;
+    canSubmitFieldVerification: boolean;
+    canRunSimulations: boolean;
+    canExportReports: boolean;
+    canAccessAdminPortal: boolean;
+  }
+> = {
+  ADMIN: {
+    canManageUsers: true,
+    canConfigureScoring: true,
+    canImportData: true,
+    canCreateInterventions: true,
+    canUpdateInterventions: true,
+    canSubmitFieldVerification: true,
+    canRunSimulations: true,
+    canExportReports: true,
+    canAccessAdminPortal: true,
+  },
   ADMINISTRATOR: {
     canManageUsers: true,
     canConfigureScoring: true,
@@ -19,6 +40,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, {
     canSubmitFieldVerification: true,
     canRunSimulations: true,
     canExportReports: true,
+    canAccessAdminPortal: true,
   },
   ANALYST: {
     canManageUsers: false,
@@ -26,9 +48,10 @@ export const ROLE_PERMISSIONS: Record<UserRole, {
     canImportData: true,
     canCreateInterventions: true,
     canUpdateInterventions: true,
-    canSubmitFieldVerification: true,
+    canSubmitFieldVerification: false,
     canRunSimulations: true,
     canExportReports: true,
+    canAccessAdminPortal: true,
   },
   FIELD_OFFICER: {
     canManageUsers: false,
@@ -38,7 +61,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, {
     canUpdateInterventions: true,
     canSubmitFieldVerification: true,
     canRunSimulations: false,
-    canExportReports: true,
+    canExportReports: false,
+    canAccessAdminPortal: true,
   },
   VIEWER: {
     canManageUsers: false,
@@ -48,13 +72,28 @@ export const ROLE_PERMISSIONS: Record<UserRole, {
     canUpdateInterventions: false,
     canSubmitFieldVerification: false,
     canRunSimulations: false,
-    canExportReports: true,
+    canExportReports: false,
+    canAccessAdminPortal: false,
+  },
+  USER: {
+    canManageUsers: false,
+    canConfigureScoring: false,
+    canImportData: false,
+    canCreateInterventions: false,
+    canUpdateInterventions: false,
+    canSubmitFieldVerification: false,
+    canRunSimulations: false,
+    canExportReports: false,
+    canAccessAdminPortal: false,
   },
 };
 
 export function hasPermission(
-  role: UserRole,
-  permission: keyof typeof ROLE_PERMISSIONS["ADMINISTRATOR"]
+  role: UserRole | string,
+  permission: keyof typeof ROLE_PERMISSIONS["ADMIN"]
 ): boolean {
-  return !!ROLE_PERMISSIONS[role]?.[permission];
+  let activeRole: UserRole = "USER";
+  if (role === "ADMIN" || role === "ADMINISTRATOR") activeRole = "ADMIN";
+  else if (role in ROLE_PERMISSIONS) activeRole = role as UserRole;
+  return !!ROLE_PERMISSIONS[activeRole]?.[permission];
 }

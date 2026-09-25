@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma, isDatabaseAvailable } from "@/lib/prisma";
 import { hashPassword, signToken } from "@/lib/auth";
 
 export async function POST(request: Request) {
   try {
-    const { email, password, name, role = "ANALYST" } = await request.json();
+    const { email, password, name, role = "USER" } = await request.json();
 
     if (!email || !password || !name) {
       return NextResponse.json(
@@ -13,78 +13,156 @@ export async function POST(request: Request) {
       );
     }
 
-    if (password.length < 8) {
+    if (password.length < 6) {
       return NextResponse.json(
-        { error: "Password must be at least 8 characters" },
+        { error: "Password must be at least 6 characters" },
         { status: 400 }
       );
     }
 
-    const existing = await prisma.user.findUnique({
-      where: { email: email.toLowerCase().trim() },
-    });
+    const cleanEmail = email.toLowerCase().trim();
+    // Normalize role — only ADMIN and USER
+    const normalizedRole: string = role === "ADMIN" || role === "ADMINISTRATOR" ? "ADMIN" : "USER";
 
-    if (existing) {
-      return NextResponse.json(
-        { error: "A user with this email address already exists" },
-        { status: 409 }
-      );
-    }
+    if (!isDatabaseAvailable) {
+      const mockId = `user-${Date.now()}`;
+      const token = signToken({
+        id: mockId,
+        email: cleanEmail,
+        name,
+        role: normalizedRole as any,
+        organizationId: "demo-org-id",
+      });
 
-    const passwordHash = await hashPassword(password);
+      const redirectTo = normalizedRole === "ADMIN" ? "/" : "/user";
 
-    // Get default org or create one
-    let org = await prisma.organization.findFirst();
-    if (!org) {
-      org = await prisma.organization.create({
-        data: {
-          name: "Global Water Resilience Alliance",
-          slug: "global-water-alliance",
+      const response = NextResponse.json({
+        success: true,
+        redirectTo,
+        user: {
+          id: mockId,
+          email: cleanEmail,
+          name,
+          role: normalizedRole,
+          organizationId: "demo-org-id",
         },
       });
+
+      response.cookies.set({
+        name: "aqua_lens_session",
+        value: token,
+        httpOnly: true,
+        path: "/",
+        maxAge: 7 * 24 * 3600,
+        sameSite: "lax",
+      });
+
+      return response;
     }
 
-    const user = await prisma.user.create({
-      data: {
-        email: email.toLowerCase().trim(),
-        passwordHash,
-        name,
-        role: ["ADMINISTRATOR", "ANALYST", "FIELD_OFFICER", "VIEWER"].includes(role)
-          ? role
-          : "ANALYST",
-        organizationId: org.id,
-      },
-    });
+    try {
+      const existing = await prisma.user.findUnique({
+        where: { email: cleanEmail },
+      });
 
-    const token = signToken({
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role as any,
-      organizationId: user.organizationId,
-    });
+      if (existing) {
+        return NextResponse.json(
+          { error: "A user with this email address already exists" },
+          { status: 409 }
+        );
+      }
 
-    const response = NextResponse.json({
-      success: true,
-      user: {
+      const passwordHash = await hashPassword(password);
+
+      // Get default org or create one
+      let org = await prisma.organization.findFirst();
+      if (!org) {
+        org = await prisma.organization.create({
+          data: {
+            name: "Global Water Resilience Alliance",
+            slug: "global-water-alliance",
+          },
+        });
+      }
+
+      const user = await prisma.user.create({
+        data: {
+          email: cleanEmail,
+          passwordHash,
+          name,
+          role: normalizedRole,
+          organizationId: org.id,
+        },
+      });
+
+      const token = signToken({
         id: user.id,
         email: user.email,
         name: user.name,
-        role: user.role,
+        role: normalizedRole as any,
         organizationId: user.organizationId,
-      },
-    });
+      });
 
-    response.cookies.set({
-      name: "aqua_lens_session",
-      value: token,
-      httpOnly: true,
-      path: "/",
-      maxAge: 7 * 24 * 3600,
-      sameSite: "lax",
-    });
+      const redirectTo = normalizedRole === "ADMIN" ? "/" : "/user";
 
-    return response;
+      const response = NextResponse.json({
+        success: true,
+        redirectTo,
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: normalizedRole,
+          organizationId: user.organizationId,
+        },
+      });
+
+      response.cookies.set({
+        name: "aqua_lens_session",
+        value: token,
+        httpOnly: true,
+        path: "/",
+        maxAge: 7 * 24 * 3600,
+        sameSite: "lax",
+      });
+
+      return response;
+    } catch (dbErr) {
+      console.warn("DB user registration failed, falling back to mock session:", dbErr);
+      const mockId = `user-${Date.now()}`;
+      const token = signToken({
+        id: mockId,
+        email: cleanEmail,
+        name,
+        role: normalizedRole as any,
+        organizationId: "demo-org-id",
+      });
+
+      const redirectTo = normalizedRole === "ADMIN" ? "/" : "/user";
+
+      const response = NextResponse.json({
+        success: true,
+        redirectTo,
+        user: {
+          id: mockId,
+          email: cleanEmail,
+          name,
+          role: normalizedRole,
+          organizationId: "demo-org-id",
+        },
+      });
+
+      response.cookies.set({
+        name: "aqua_lens_session",
+        value: token,
+        httpOnly: true,
+        path: "/",
+        maxAge: 7 * 24 * 3600,
+        sameSite: "lax",
+      });
+
+      return response;
+    }
   } catch (error: any) {
     console.error("Register error:", error);
     return NextResponse.json(
@@ -93,3 +171,4 @@ export async function POST(request: Request) {
     );
   }
 }
+
