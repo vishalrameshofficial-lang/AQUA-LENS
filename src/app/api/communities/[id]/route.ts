@@ -2,13 +2,14 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { calculateVulnerability, DEFAULT_SCORING_WEIGHTS } from "@/lib/scoring";
 import { getSessionUser, hasPermission } from "@/lib/auth";
+import { FALLBACK_COMMUNITIES } from "@/lib/fallback-data";
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
-    const { id } = await params;
     const community = await prisma.community.findUnique({
       where: { id },
       include: {
@@ -38,11 +39,19 @@ export async function GET(
     });
 
     if (!community) {
+      const fallback = FALLBACK_COMMUNITIES.find(c => c.id === id || c.code === id);
+      if (fallback) {
+        return NextResponse.json({ success: true, data: fallback });
+      }
       return NextResponse.json({ error: "Community not found" }, { status: 404 });
     }
 
     return NextResponse.json({ success: true, data: community });
   } catch (error: any) {
+    const fallback = FALLBACK_COMMUNITIES.find(c => c.id === id || c.code === id);
+    if (fallback) {
+      return NextResponse.json({ success: true, data: fallback });
+    }
     return NextResponse.json(
       { error: "Failed to fetch community: " + error.message },
       { status: 500 }

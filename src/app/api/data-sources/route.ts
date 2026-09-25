@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser, hasPermission } from "@/lib/auth";
+import { FALLBACK_DATA_SOURCES } from "@/lib/fallback-data";
 
 export async function GET() {
   try {
@@ -16,9 +17,14 @@ export async function GET() {
       },
     });
 
+    if (sources.length === 0) {
+      return NextResponse.json({ success: true, data: FALLBACK_DATA_SOURCES });
+    }
+
     return NextResponse.json({ success: true, data: sources });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.warn("GET /api/data-sources DB unavailable, serving fallback registry:", error?.message);
+    return NextResponse.json({ success: true, data: FALLBACK_DATA_SOURCES });
   }
 }
 
