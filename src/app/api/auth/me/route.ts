@@ -37,6 +37,6 @@ export async function GET() {
       user,
     });
   } catch (error) {
-    return NextResponse.json({ authenticated: false, user: null }, { status: 500 });
+    return NextResponse.json({ authenticated: false, user: null }, { status: 200 });
   }
 }
