@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma, isDatabaseAvailable } from "@/lib/prisma";
 import { calculateVulnerability, DEFAULT_SCORING_WEIGHTS } from "@/lib/scoring";
 import { getSessionUser, hasPermission } from "@/lib/auth";
 import { FALLBACK_COMMUNITIES } from "@/lib/fallback-data";
@@ -9,6 +9,12 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+
+  if (!isDatabaseAvailable) {
+    const fallback = FALLBACK_COMMUNITIES.find(c => c.id === id || c.code === id) || FALLBACK_COMMUNITIES[0];
+    return NextResponse.json({ success: true, data: fallback });
+  }
+
   try {
     const community = await prisma.community.findUnique({
       where: { id },

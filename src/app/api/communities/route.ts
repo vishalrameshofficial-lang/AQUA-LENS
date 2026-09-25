@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma, isDatabaseAvailable } from "@/lib/prisma";
 import { calculateVulnerability, DEFAULT_SCORING_WEIGHTS } from "@/lib/scoring";
 import { getSessionUser, hasPermission } from "@/lib/auth";
 import { FALLBACK_COMMUNITIES } from "@/lib/fallback-data";
@@ -11,6 +11,27 @@ export async function GET(request: Request) {
   const district = searchParams.get("district");
   const block = searchParams.get("block");
   const vulnerability = searchParams.get("vulnerability");
+
+  if (!isDatabaseAvailable) {
+    const filtered = FALLBACK_COMMUNITIES.filter(c => {
+      if (search && !c.name.toLowerCase().includes(search.toLowerCase()) && !c.district.toLowerCase().includes(search.toLowerCase())) return false;
+      if (district && district !== "All" && c.district !== district) return false;
+      if (vulnerability && vulnerability !== "All" && c.vulnerabilityCategory !== vulnerability) return false;
+      return true;
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: filtered,
+      pagination: {
+        page: 1,
+        limit: filtered.length,
+        total: filtered.length,
+        totalPages: 1,
+      },
+    });
+  }
+
   try {
     const floodHazard = searchParams.get("floodHazard");
     const maxWaterAccess = searchParams.get("maxWaterAccess");

@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma, isDatabaseAvailable } from "@/lib/prisma";
 import { getSessionUser, hasPermission } from "@/lib/auth";
 import { FALLBACK_DATA_SOURCES } from "@/lib/fallback-data";
 
 export async function GET() {
+  if (!isDatabaseAvailable) {
+    return NextResponse.json({ success: true, data: FALLBACK_DATA_SOURCES });
+  }
+
   try {
     const sources = await prisma.dataSource.findMany({
       orderBy: { datasetTitle: "asc" },

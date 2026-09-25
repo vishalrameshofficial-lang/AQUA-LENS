@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma, isDatabaseAvailable } from "@/lib/prisma";
 import { getSessionUser, hasPermission } from "@/lib/auth";
 
 export async function GET(request: Request) {
+  if (!isDatabaseAvailable) {
+    return NextResponse.json({ success: true, data: [] });
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status");

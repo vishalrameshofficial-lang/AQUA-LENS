@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma, isDatabaseAvailable } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
 import { FALLBACK_COMPLAINTS } from "@/lib/fallback-data";
 import {
@@ -14,6 +14,33 @@ import {
 } from "@/lib/complaint-routing";
 
 export async function GET(request: Request) {
+  if (!isDatabaseAvailable) {
+    return NextResponse.json({
+      success: true,
+      data: FALLBACK_COMPLAINTS,
+      kpis: {
+        total: FALLBACK_COMPLAINTS.length,
+        open: 1,
+        underReview: 0,
+        inProgress: 1,
+        resolved: 0,
+        closed: 0,
+        highPriority: 3,
+        verified: 2,
+      },
+      categoryDistribution: [
+        { category: "WATER_QUALITY", count: 2 },
+        { category: "WATER_SUPPLY", count: 1 }
+      ],
+      statusDistribution: [
+        { status: "IN_PROGRESS", count: 1 },
+        { status: "ASSIGNED", count: 1 },
+        { status: "INVESTIGATING", count: 1 }
+      ],
+      hotspots: [],
+    });
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search")?.toLowerCase().trim();

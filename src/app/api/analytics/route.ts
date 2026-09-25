@@ -1,8 +1,16 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma, isDatabaseAvailable } from "@/lib/prisma";
 import { FALLBACK_ANALYTICS } from "@/lib/fallback-data";
 
 export async function GET(request: Request) {
+  if (!isDatabaseAvailable) {
+    return NextResponse.json({
+      success: true,
+      timestamp: new Date().toISOString(),
+      ...FALLBACK_ANALYTICS,
+    });
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const state = searchParams.get("state");

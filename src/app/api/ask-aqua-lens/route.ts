@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma, isDatabaseAvailable } from "@/lib/prisma";
 import { evaluateRiskDrivers, generateActionRecommendations } from "@/lib/recommendations";
 import { DEFAULT_SCORING_WEIGHTS } from "@/lib/scoring";
+import { FALLBACK_COMMUNITIES, FALLBACK_DATA_SOURCES } from "@/lib/fallback-data";
 
 export interface AskAquaLensRequest {
   question: string;
@@ -53,46 +54,90 @@ export async function POST(request: Request) {
       }
     }
 
-    // Load active communities from SQLite database
-    const allCommunities = await prisma.community.findMany({
-      where: candidateIds ? { id: { in: candidateIds } } : undefined,
-      select: {
-        id: true,
-        name: true,
-        code: true,
-        district: true,
-        block: true,
-        state: true,
-        latitude: true,
-        longitude: true,
-        population: true,
-        waterAccessPct: true,
-        sanitationAccessPct: true,
-        povertyRate: true,
-        rainfallAnnualMm: true,
-        floodHazardLevel: true,
-        infrastructureScore: true,
-        compositeVulnerabilityScore: true,
-        vulnerabilityCategory: true,
-        dataCompletenessPct: true,
-        isSampleData: true,
-        dataLimitationsNotice: true,
-      },
-      orderBy: { compositeVulnerabilityScore: "desc" },
-    });
+    // Load active communities
+    let allCommunities: any[] = [];
+    let dataSources: any[] = [];
 
-    // Load data sources for provenance citations
-    const dataSources = await prisma.dataSource.findMany({
-      take: 6,
-      select: {
-        datasetTitle: true,
-        sourceAgency: true,
-        referencePeriod: true,
-        sourceStatus: true,
-        units: true,
-        category: true,
-      },
-    });
+    if (isDatabaseAvailable) {
+      try {
+        allCommunities = await prisma.community.findMany({
+          where: candidateIds ? { id: { in: candidateIds } } : undefined,
+          select: {
+            id: true,
+            name: true,
+            code: true,
+            district: true,
+            block: true,
+            state: true,
+            latitude: true,
+            longitude: true,
+            population: true,
+            waterAccessPct: true,
+            sanitationAccessPct: true,
+            povertyRate: true,
+            rainfallAnnualMm: true,
+            floodHazardLevel: true,
+            infrastructureScore: true,
+            compositeVulnerabilityScore: true,
+            vulnerabilityCategory: true,
+            dataCompletenessPct: true,
+            isSampleData: true,
+            dataLimitationsNotice: true,
+          },
+          orderBy: { compositeVulnerabilityScore: "desc" },
+        });
+
+        dataSources = await prisma.dataSource.findMany({
+          take: 6,
+          select: {
+            datasetTitle: true,
+            sourceAgency: true,
+            referencePeriod: true,
+            sourceStatus: true,
+            units: true,
+            category: true,
+          },
+        });
+      } catch (dbErr) {
+        console.warn("DB query failed in ask-aqua-lens, using fallback:", dbErr);
+      }
+    }
+
+    if (allCommunities.length === 0) {
+      allCommunities = (candidateIds ? FALLBACK_COMMUNITIES.filter(c => candidateIds!.includes(c.id)) : FALLBACK_COMMUNITIES).map(c => ({
+        id: c.id,
+        name: c.name,
+        code: c.code,
+        district: c.district,
+        block: c.block,
+        state: c.state,
+        latitude: c.latitude,
+        longitude: c.longitude,
+        population: c.population,
+        waterAccessPct: c.waterAccessPct,
+        sanitationAccessPct: c.sanitationAccessPct,
+        povertyRate: c.povertyRate,
+        rainfallAnnualMm: c.rainfallAnnualMm,
+        floodHazardLevel: c.floodHazardLevel,
+        infrastructureScore: c.infrastructureScore,
+        compositeVulnerabilityScore: c.compositeVulnerabilityScore,
+        vulnerabilityCategory: c.vulnerabilityCategory,
+        dataCompletenessPct: c.dataCompletenessPct,
+        isSampleData: c.isSampleData,
+        dataLimitationsNotice: c.dataLimitationsNotice,
+      }));
+    }
+
+    if (dataSources.length === 0) {
+      dataSources = FALLBACK_DATA_SOURCES.map(d => ({
+        datasetTitle: d.datasetTitle,
+        sourceAgency: d.sourceAgency,
+        referencePeriod: d.referencePeriod,
+        sourceStatus: d.sourceStatus,
+        units: d.units,
+        category: d.category,
+      }));
+    }
 
     // 2. Identify Context Community if supplied or mentioned by name
     let contextCommunity = communityId

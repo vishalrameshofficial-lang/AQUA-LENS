@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma, isDatabaseAvailable } from "@/lib/prisma";
 import { FALLBACK_COMMUNITIES } from "@/lib/fallback-data";
 
 export async function GET(
@@ -7,6 +7,29 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+
+  if (!isDatabaseAvailable) {
+    const fallbackCommunity = FALLBACK_COMMUNITIES.find(c => c.id === id || c.code === id) || FALLBACK_COMMUNITIES[0];
+    return NextResponse.json({
+      success: true,
+      community: {
+        id: fallbackCommunity.id,
+        name: fallbackCommunity.name,
+        code: fallbackCommunity.code,
+        district: fallbackCommunity.district,
+      },
+      signals: {
+        total: 2,
+        open: 1,
+        water: 1,
+        sanitation: 0,
+        flooding: 1,
+        verified: 1,
+      },
+      recentComplaints: [],
+    });
+  }
+
   try {
     const [community, complaints] = await Promise.all([
       prisma.community.findUnique({

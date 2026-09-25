@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma, isDatabaseAvailable } from "@/lib/prisma";
 import { generateCommunityIntelligenceReport } from "@/lib/ai";
 import { generateInterventionRecommendations } from "@/lib/recommendations";
 import { FALLBACK_COMMUNITIES } from "@/lib/fallback-data";
@@ -11,14 +11,14 @@ export async function POST(request: Request) {
     requestedId = body?.communityId || "";
 
     let community = null;
-    try {
-      if (requestedId) {
+    if (isDatabaseAvailable && requestedId) {
+      try {
         community = await prisma.community.findUnique({
           where: { id: requestedId },
         });
+      } catch (dbErr) {
+        console.warn("DB findUnique failed, using fallback:", dbErr);
       }
-    } catch (dbErr) {
-      console.warn("DB findUnique failed, using fallback:", dbErr);
     }
 
     if (!community) {
