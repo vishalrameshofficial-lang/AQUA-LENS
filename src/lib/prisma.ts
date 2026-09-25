@@ -8,7 +8,8 @@ const rawUrl = process.env.DATABASE_URL || "";
 export const isDatabaseAvailable = Boolean(
   rawUrl &&
   (rawUrl.startsWith("postgresql://") || rawUrl.startsWith("postgres://")) &&
-  !rawUrl.includes("localhost:5432") &&
+  !rawUrl.includes("localhost") &&
+  !rawUrl.includes("127.0.0.1") &&
   !rawUrl.includes("aqua_user:aqua_pass")
 );
 
