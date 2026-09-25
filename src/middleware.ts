@@ -44,6 +44,7 @@ export function middleware(request: NextRequest) {
       if (role === "USER") {
         const allowedUserPaths = [
           "/user",
+          "/citizen",
           "/ask",
           "/complaints",
           "/api/ask-aqua-lens",
