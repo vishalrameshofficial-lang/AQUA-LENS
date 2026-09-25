@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
@@ -364,10 +366,10 @@ export default function CommandCenterPage() {
                         {r.district || r.region}
                       </td>
                       <td className="py-3 px-3 text-right font-mono" style={{ color: "var(--text-body)" }}>
-                        {r.communitiesCount}
+                        {r.communitiesCount ?? r.count ?? 0}
                       </td>
                       <td className="py-3 px-3 text-right font-mono" style={{ color: "var(--text-body)" }}>
-                        {r.population.toLocaleString()}
+                        {(r.population ?? r.totalPopulation ?? 0).toLocaleString()}
                       </td>
                       <td className="py-3 px-3 text-right font-mono font-bold" style={{ color: "var(--blue-primary)" }}>
                         {r.averageWaterAccess}%

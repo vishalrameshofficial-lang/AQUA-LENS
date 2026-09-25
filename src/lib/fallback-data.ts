@@ -571,8 +571,9 @@ export const FALLBACK_ANALYTICS = {
   districtStats: [
     {
       district: "Ramanathapuram",
-      count: 5,
-      totalPopulation: 162900,
+      region: "Ramanathapuram",
+      communitiesCount: 5,
+      population: 162900,
       averageWaterAccess: 40.1,
       averageSanitationAccess: 53.8,
       averageVulnerability: 68.8,
@@ -580,8 +581,9 @@ export const FALLBACK_ANALYTICS = {
     },
     {
       district: "Cuddalore",
-      count: 3,
-      totalPopulation: 114100,
+      region: "Cuddalore",
+      communitiesCount: 3,
+      population: 114100,
       averageWaterAccess: 50.7,
       averageSanitationAccess: 54.0,
       averageVulnerability: 62.4,
@@ -589,8 +591,9 @@ export const FALLBACK_ANALYTICS = {
     },
     {
       district: "Nagapattinam",
-      count: 1,
-      totalPopulation: 34200,
+      region: "Nagapattinam",
+      communitiesCount: 1,
+      population: 34200,
       averageWaterAccess: 26.0,
       averageSanitationAccess: 41.0,
       averageVulnerability: 84.7,
@@ -598,8 +601,9 @@ export const FALLBACK_ANALYTICS = {
     },
     {
       district: "Mayiladuthurai",
-      count: 1,
-      totalPopulation: 27800,
+      region: "Mayiladuthurai",
+      communitiesCount: 1,
+      population: 27800,
       averageWaterAccess: 48.0,
       averageSanitationAccess: 56.0,
       averageVulnerability: 66.8,
@@ -607,8 +611,9 @@ export const FALLBACK_ANALYTICS = {
     },
     {
       district: "Dharmapuri",
-      count: 1,
-      totalPopulation: 38900,
+      region: "Dharmapuri",
+      communitiesCount: 1,
+      population: 38900,
       averageWaterAccess: 36.0,
       averageSanitationAccess: 49.0,
       averageVulnerability: 68.2,
@@ -616,13 +621,22 @@ export const FALLBACK_ANALYTICS = {
     },
     {
       district: "Tiruvannamalai",
-      count: 1,
-      totalPopulation: 31500,
+      region: "Tiruvannamalai",
+      communitiesCount: 1,
+      population: 31500,
       averageWaterAccess: 42.0,
       averageSanitationAccess: 51.0,
       averageVulnerability: 59.3,
       highVulnerabilityCount: 0
     }
+  ],
+  riskFactorAverages: [
+    { name: "Water Access Gap (JJM Tap Coverage)", averageScore: 60, weight: 25, color: "#06b6d4", source: "Jal Jeevan Mission / WQMIS" },
+    { name: "Sanitation Access Gap (SBM-G Coverage)", averageScore: 47, weight: 20, color: "#3b82f6", source: "Swachh Bharat Mission (Grameen)" },
+    { name: "Climate & Flood Exposure (IMD & CWC)", averageScore: 68, weight: 20, color: "#f97316", source: "India Meteorological Dept / CWC" },
+    { name: "Socioeconomic Deprivation (NFHS-5)", averageScore: 53, weight: 15, color: "#eab308", source: "NFHS-5 (2019-2021) / NITI Aayog" },
+    { name: "Infrastructure Fragility (TWAD Board)", averageScore: 54, weight: 10, color: "#ef4444", source: "Tamil Nadu Water Supply & Drainage Board" },
+    { name: "Population Vulnerability (Census 2011)", averageScore: 48, weight: 10, color: "#8b5cf6", source: "Census of India 2011" },
   ],
   vulnerabilityDistribution: [
     { category: "VERY_HIGH", count: 2, label: "Very High (≥75)" },
